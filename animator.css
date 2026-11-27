@@ -1,0 +1,744 @@
+/* All styling for the Animator app. The .gleam files only attach class names. */
+
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body { width: 100%; height: 100%; overflow: hidden; }
+
+/* ── Layout: two columns ─────────────────────────────────────────────────── */
+
+.app {
+  display: flex;
+  width: 100vw;
+  height: 100vh;
+  background: #1a1a2e;
+  color: #d4c5a0;
+  font-family: system-ui, sans-serif;
+  font-size: 14px;
+}
+
+/* Left column: the code editor. Solution overlays to the right without
+   resizing this column or shifting the canvas. */
+.code-col {
+  position: relative;
+  width: 42%;
+  min-width: 320px;
+  max-width: 720px;
+  flex-shrink: 0;
+  display: flex;
+  border-right: 1px solid #3a3a5e;
+  background: #0f0f1e;
+  z-index: 5;
+}
+
+/* Answer overlay: docks to the right edge of the code column and covers
+   whatever sits underneath (usually the canvas). */
+.solution-panel {
+  position: absolute;
+  top: 0;
+  left: 100%;
+  bottom: 0;
+  width: min(420px, 46vw);
+  z-index: 40;
+  display: flex;
+  flex-direction: column;
+  border: 1px solid #3a5e4a;
+  border-left: none;
+  background: #0c1210;
+  box-shadow: 8px 0 28px rgba(0, 0, 0, 0.45);
+  overflow: hidden;
+}
+.solution-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #142018;
+  border-bottom: 1px solid #3a5e4a;
+  flex-shrink: 0;
+}
+.solution-title {
+  color: #b8e0c0;
+  font-family: 'Georgia', serif;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+.solution-hide {
+  background: #0d0d1a;
+  color: #b8e0c0;
+  border: 1px solid #3a5e4a;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  cursor: pointer;
+}
+.solution-hide:hover {
+  border-color: #6aaa7a;
+  background: #1a2a20;
+}
+.solution-body {
+  flex: 1;
+  min-height: 0;
+  margin: 0;
+  padding: 12px 14px;
+  overflow: auto;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  line-height: 1.45;
+  color: #a8d4a0;
+  white-space: pre;
+}
+
+/* The code column stays in the DOM when collapsed, so CodeMirror keeps its
+   state; hiding it gives the right column the full width. */
+.app.code-hidden .code-col { display: none; }
+
+/* A small emoji button (the code pane's collapse toggle, and the playback
+   controls once they exist). */
+.icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: #2a2a4a;
+  color: #d4c5a0;
+  border: 1px solid #4a4a8a;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  padding: 5px 8px;
+}
+.icon-btn:hover { background: #3a3a5e; }
+
+/* ── Code panel (left column) ───────────────────────────────────────────── */
+
+.code-panel {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.code-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #1a1a3e;
+  border-bottom: 1px solid #3a3a5e;
+}
+.code-title {
+  color: #e8d8b0;
+  font-family: 'Georgia', serif;
+  font-size: 16px;
+  letter-spacing: 1px;
+}
+
+/* Drawing picker above the editor. */
+.drawing-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 45px;
+  padding: 8px 14px;
+  background: #12122a;
+  border-bottom: 1px solid #3a3a5e;
+}
+.drawing-bar-slot {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  align-items: center;
+}
+.drawing-bar-slot > * {
+  grid-area: 1 / 1;
+}
+.drawing-bar select[data-test-id="drawing-select"] {
+  width: 100%;
+  min-width: 0;
+  background: #0d0d1a;
+  color: #d4c5a0;
+  border: 1px solid #4a4a8a;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-family: monospace;
+  font-size: 12px;
+}
+.game-bar-controls {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: nowrap;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  width: 100%;
+  visibility: hidden;
+  pointer-events: none;
+}
+.game-bar-btn,
+.difficulty-select {
+  background: #0d0d1a;
+  color: #d4c5a0;
+  border: 1px solid #4a4a8a;
+  border-radius: 4px;
+  padding: 5px 8px;
+  font-family: monospace;
+  font-size: 12px;
+  cursor: pointer;
+  white-space: nowrap;
+  flex: 0 0 auto;
+}
+.game-bar-btn:hover,
+.difficulty-select:hover {
+  border-color: #6a6aaa;
+  background: #1a1a36;
+}
+.game-bar-btn-on {
+  border-color: #6aaa7a;
+  color: #b8e0c0;
+  background: #142018;
+}
+/* Slight right padding so the caret clears the label without puffing the control. */
+.difficulty-select {
+  min-width: 5.5rem;
+  padding-right: 1.35rem;
+}
+/* Free play: library picker. Game: New game + difficulty in the same slot. */
+.drawing-bar-game select[data-test-id="drawing-select"] {
+  visibility: hidden;
+  pointer-events: none;
+}
+.drawing-bar-game .game-bar-controls {
+  visibility: visible;
+  pointer-events: auto;
+}
+
+/* Wrapper holding the editor. */
+.code-editor-wrap {
+  flex: 1;
+  min-height: 0;
+  position: relative;
+  display: flex;
+}
+/* CodeMirror mount node: grows to fill the panel. */
+.code-editor {
+  flex: 1;
+  min-height: 0;
+  display: flex;
+  overflow: hidden;
+  background: #0d0d1a;
+}
+.code-editor .cm-editor { width: 100%; height: 100%; }
+/* Anticipate double-digit line numbers so the gutter doesn't jump at 10. */
+.code-editor .cm-lineNumbers {
+  min-width: 32px !important;
+}
+.code-editor .cm-lineNumbers .cm-gutterElement {
+  min-width: 2.5ch !important;
+  padding-left: 4px;
+  padding-right: 8px;
+  text-align: right;
+  box-sizing: content-box;
+}
+
+/* Collapsible reference of the built-ins available to draw functions. */
+.reference {
+  margin: 8px 14px 0;
+  border: 1px solid #3a3a5e;
+  border-radius: 4px;
+  background: #0d0d1a;
+  overflow: hidden;
+}
+.reference-summary {
+  padding: 6px 12px;
+  cursor: pointer;
+  color: #b8a888;
+  font-family: monospace;
+  font-size: 12px;
+  user-select: none;
+}
+.reference-summary:hover { color: #e8d8b0; }
+.reference-body {
+  padding: 4px 12px 10px;
+  border-top: 1px solid #3a3a5e;
+}
+.reference-group { margin-top: 8px; }
+.reference-group-title {
+  color: #8a8aca;
+  font-family: monospace;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  margin-bottom: 4px;
+}
+.reference-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 4px 10px;
+  padding: 1px 0;
+}
+.reference-sig {
+  color: #89ddff;
+  font-family: monospace;
+  font-size: 12px;
+  white-space: pre;
+}
+.reference-desc { color: #6a7a8a; font-size: 11px; }
+
+/* ── Animation area (right column) ──────────────────────────────────────── */
+
+.canvas-area {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #0a0a14;
+  container-type: size;
+}
+
+/* Interpreter / draw errors over the canvas so they aren't clipped by the
+   square canvas + overflow:hidden on .canvas-area. */
+.output {
+  position: absolute;
+  inset: 0;
+  z-index: 11;
+  margin: 0;
+  padding: 16px;
+  overflow: auto;
+  box-sizing: border-box;
+  background: rgba(10, 10, 20, 0.92);
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  line-height: 1.5;
+  color: #f0a0a0;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+/* Leave room for the reveal button, which only overlays this pane while the
+   code column is hidden. */
+.app.code-hidden .output { padding-top: 48px; }
+
+/* Button that reveals the code column again when it is hidden. */
+.reveal-code {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 10;
+}
+
+/* Free play HUD: export control in the top-right. */
+.free-play-hud {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 12;
+}
+.export-gif-btn {
+  background: #0d0d1a;
+  color: #d4c5a0;
+  border: 1px solid #4a4a8a;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.export-gif-btn:hover {
+  border-color: #6a6aaa;
+  color: #e8d8b0;
+  background: #1a1a36;
+}
+
+/* Game HUD: accuracy + overlay toggle, stacked in the top-right. */
+.game-hud {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 12;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.accuracy-meter {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 8px 6px 10px;
+  background: #0d0d1a;
+  border: 1px solid #4a4a8a;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.accuracy-label {
+  color: #b8a888;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.accuracy-value {
+  color: #e8d8b0;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 14px;
+  min-width: 3.5ch;
+  text-align: right;
+}
+.accuracy-check-btn {
+  background: #1a1a36;
+  color: #d4c5a0;
+  border: 1px solid #4a4a8a;
+  border-radius: 4px;
+  padding: 4px 10px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  cursor: pointer;
+}
+.accuracy-check-btn:hover {
+  border-color: #6a6aaa;
+  background: #222248;
+}
+
+/* HUD toggles: active = full color; off = greyed out (no ": on"/": off" text). */
+.hud-toggle {
+  background: #0d0d1a;
+  color: #d4c5a0;
+  border: 1px solid #4a4a8a;
+  border-radius: 6px;
+  padding: 6px 12px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+  opacity: 1;
+}
+.hud-toggle:hover {
+  border-color: #6a6aaa;
+  color: #e8d8b0;
+  background: #1a1a36;
+}
+.hud-toggle-off {
+  opacity: 0.38;
+  color: #7a7a8a;
+  border-color: #3a3a55;
+  background: #0a0a14;
+  box-shadow: none;
+}
+.hud-toggle-off:hover {
+  opacity: 0.55;
+  color: #9a9aaa;
+  border-color: #4a4a6a;
+  background: #12121c;
+}
+
+/* Full-canvas win overlay when accuracy hits 100%. */
+.success-screen {
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  background: rgba(8, 10, 18, 0.88);
+  text-align: center;
+  padding: 24px;
+  box-sizing: border-box;
+}
+.success-title {
+  margin: 0;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: clamp(28px, 6cqw, 48px);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #e8d8b0;
+}
+.success-sub {
+  margin: 0 0 8px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  color: #8a7a60;
+}
+.success-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  justify-content: center;
+  margin-top: 4px;
+}
+.success-return,
+.success-new-game {
+  background: #1a1a36;
+  color: #e8d8b0;
+  border: 1px solid #6a6aaa;
+  border-radius: 6px;
+  padding: 10px 22px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+.success-return:hover,
+.success-new-game:hover {
+  background: #2a2a55;
+  border-color: #8a8aca;
+}
+.success-return {
+  background: #14141f;
+  border-color: #555568;
+  color: #c8c0a8;
+}
+
+/* A centred square that fits the (possibly non-square) animation area. Give your
+   <canvas> this class, so that drawings aren't stretched. */
+.canvas {
+  width: min(100cqw, 100cqh);
+  height: min(100cqw, 100cqh);
+}
+
+/* Free play / Game switch in the drawing bar. */
+.mode-switch {
+  display: inline-flex;
+  flex-shrink: 0;
+  border: 1px solid #4a4a8a;
+  border-radius: 4px;
+  overflow: hidden;
+}
+.mode-switch-btn {
+  background: #0d0d1a;
+  color: #8a7a60;
+  border: none;
+  padding: 5px 10px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 11px;
+  letter-spacing: 0.03em;
+  cursor: pointer;
+}
+.mode-switch-btn + .mode-switch-btn {
+  border-left: 1px solid #4a4a8a;
+}
+.mode-switch-btn:hover:not(:disabled) {
+  color: #d4c5a0;
+  background: #1a1a36;
+}
+.mode-switch-btn-active,
+.mode-switch-btn:disabled {
+  background: #2a2a55;
+  color: #e8d8b0;
+  cursor: default;
+}
+
+/* Playback controls, pinned to the bottom-right of the animation pane.
+   Free play and Game layers share one fixed footprint so mode swaps don't shift. */
+.playback-controls {
+  position: absolute;
+  right: 16px;
+  /* Sit above the bottom axis number labels on the canvas. */
+  bottom: 36px;
+  z-index: 10;
+  display: grid;
+  justify-items: end;
+  align-items: end;
+  min-width: 280px;
+  min-height: 72px;
+}
+
+.game-shape-panel {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 12px;
+  background: #0d0d1a;
+  border: 1px solid #4a4a8a;
+  border-radius: 6px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.playback-layer {
+  grid-area: 1 / 1;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+}
+
+.playback-layer-hidden {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.playback-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 32px;
+}
+
+.game-btn {
+  background: #1a1a36;
+  color: #d4c5a0;
+  border: 1px solid #4a4a8a;
+  border-radius: 4px;
+  padding: 8px 16px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  cursor: pointer;
+}
+.game-btn:hover:not(:disabled) {
+  border-color: #6a6aaa;
+  background: #222248;
+}
+.game-btn-show {
+  color: #e8d8b0;
+  border-color: #6a6aaa;
+  background: #2a2a55;
+}
+.game-btn-show-off {
+  opacity: 0.38;
+  color: #7a7a8a;
+  border-color: #3a3a4a;
+  background: #141422;
+}
+
+[data-test-id="speed-slider"],
+[data-test-id="shape-slider"],
+[data-test-id="game-shape-slider"] {
+  width: 140px;
+  cursor: pointer;
+}
+
+.shape-label {
+  color: #d4c5a0;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  white-space: nowrap;
+}
+
+.speed-value {
+  color: #e8d8b0;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  min-width: 3.2ch;
+  text-align: right;
+  white-space: nowrap;
+}
+
+/* Free play GIF export dialog */
+.gif-export-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(6, 6, 14, 0.72);
+  padding: 24px;
+  box-sizing: border-box;
+}
+.gif-export-dialog {
+  width: min(100%, 440px);
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 14px;
+  padding: 16px;
+  background: #0f0f1e;
+  border: 1px solid #4a4a8a;
+  border-radius: 8px;
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.55);
+}
+.gif-export-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.gif-export-title {
+  color: #e8d8b0;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 14px;
+  letter-spacing: 0.04em;
+}
+.gif-export-close {
+  background: transparent;
+  border: none;
+  color: #8a7a60;
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.gif-export-close:hover {
+  color: #e8d8b0;
+}
+.gif-preview-canvas {
+  width: 400px;
+  height: 400px;
+  max-width: 100%;
+  aspect-ratio: 1;
+  align-self: center;
+  background: #0a0a14;
+  border: 1px solid #3a3a5e;
+  border-radius: 4px;
+}
+.gif-export-field,
+.gif-export-speed-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.gif-export-speed-label {
+  color: #b8a888;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+  min-width: 3.5rem;
+}
+.gif-export-name-input {
+  flex: 1;
+  min-width: 0;
+  background: #0d0d1a;
+  color: #e8d8b0;
+  border: 1px solid #4a4a8a;
+  border-radius: 4px;
+  padding: 6px 8px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+}
+.gif-export-name-input:focus {
+  outline: none;
+  border-color: #6a6aaa;
+}
+.gif-export-ext {
+  color: #8a7a60;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 12px;
+}
+.gif-export-speed-row input[type="range"] {
+  flex: 1;
+  min-width: 0;
+  cursor: pointer;
+}
+.gif-export-download {
+  background: #1a1a36;
+  color: #e8d8b0;
+  border: 1px solid #6a6aaa;
+  border-radius: 6px;
+  padding: 10px 16px;
+  font-family: ui-monospace, "SF Mono", Menlo, monospace;
+  font-size: 13px;
+  cursor: pointer;
+}
+.gif-export-download:hover {
+  background: #2a2a55;
+  border-color: #8a8aca;
+}
+
